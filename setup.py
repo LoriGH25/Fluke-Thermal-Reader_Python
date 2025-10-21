@@ -13,7 +13,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
-    name="fluke-thermal-reader",
+    name="fluke_thermal_reader",
     version="0.1.0",
     author="Lorenzo Ghidini",
     author_email="lorigh46@gmail.com",
@@ -54,7 +54,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "fluke-thermal-reader=fluke_thermal_reader.cli:main",
+            "fluke_thermal_reader=fluke_thermal_reader.cli:main",
         ],
     },
 )

@@ -146,6 +146,9 @@ temp_*/
 *.jpg
 *.jpeg
 
+# Always include requirements files
+!requirements.txt
+
 # IDE files
 .vscode/
 .idea/

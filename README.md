@@ -2,7 +2,7 @@
 
 A Python library for reading and analyzing Fluke thermal files (.is2 and .is3 formats).
 
-**Package**: `fluke-thermal-reader` | **Import**: `import fluke_thermal_reader`
+**Package**: `fluke_thermal_reader` | **Import**: `import fluke_thermal_reader`
 
 ## Features
 
@@ -17,12 +17,10 @@ A Python library for reading and analyzing Fluke thermal files (.is2 and .is3 fo
 ## Installation
 
 ```bash
-pip install fluke-thermal-reader
+pip install fluke_thermal_reader
 ```
 
-**Important**: 
-- **Package name**: `fluke-thermal-reader` (for pip install)
-- **Import name**: `fluke_thermal_reader` (for Python import)
+**Important**: package name and import are identical: `fluke_thermal_reader`.
 
 ## Quick Start
 
@@ -45,8 +43,10 @@ print(f"Background temperature: {data['BackgroundTemp']}°C")
 
 ## Supported File Formats
 
-- **.is2**: Fluke thermal format (fully supported)
-- **.is3**: Fluke thermal format (planned for future version - FUTURE WORK)
+- **IS2 (images)**: Fluke thermal image format — FULLY SUPPORTED
+- **IS3 (video)**: Fluke thermal video format — FUTURE WORK (not implemented yet)
+
+All the examples and usage below refer to IS2 image files only.
 
 ## Image Handling
 
@@ -93,12 +93,8 @@ Load and parse a Fluke thermal .is2 file.
 **Returns:**
 - `dict`: Dictionary containing thermal data and metadata
 
-### `read_is3(file_path)` - FUTURE WORK
 
-⚠️ **WARNING**: This function is not yet implemented.
-Support for .is3 files is planned for a future version.
-
-**Returned Data Structure:**
+**Returned Data Structure (read_is2):**
 ```python
 {
     'data': numpy.ndarray,           # 2D array of temperature values
@@ -244,7 +240,7 @@ fluke_reader/
 python -m pytest
 
 # Run with coverage
-python -m pytest --cov=fluke_reader
+python -m pytest --cov=fluke_thermal_reader
 ```
 
 ## Contributing
@@ -275,3 +271,15 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Fusion offset correction
 - Support for Ti300 and Ti480P cameras
 - Ready for additional camera model support with user feedback
+
+---
+
+## read_is3 (Future Work)
+
+`read_is3(file_path)` is planned for Fluke IS3 (video) files.
+
+- Current status: Not implemented — calling it raises `NotImplementedError`.
+- Scope: video streams (multiple thermal frames), video-level metadata.
+- Documentation: the returned data structure will be defined once implementation starts.
+
+If you are interested in IS3 support, please open an issue with sample files and requirements.
