@@ -54,7 +54,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "fluke-reader=fluke_reader.cli:main",
+            "fluke-thermal-reader=fluke_thermal_reader.cli:main",
         ],
     },
 )

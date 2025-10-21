@@ -2,12 +2,16 @@
 
 A Python library for reading and analyzing Fluke thermal files (.is2 and .is3 formats).
 
+**Package**: `fluke-thermal-reader` | **Import**: `import fluke_thermal_reader`
+
 ## Features
 
 - **Complete .is2 support**: Parse Fluke .is2 thermal imaging files
 - **Accurate temperature conversion**: Convert raw thermal data to temperature values with high precision
 - **Metadata extraction**: Extract camera information, calibration data, and image properties
 - **Fusion offset correction**: Automatic correction for horizontal shift in thermal images
+- **Lightweight design**: Minimal dependencies (only numpy required)
+- **Optional image loading**: Images are returned as paths, not loaded automatically
 - **Tested camera models**: Ti300 and Ti480P (other models supported with user feedback)
 
 ## Installation
@@ -16,10 +20,14 @@ A Python library for reading and analyzing Fluke thermal files (.is2 and .is3 fo
 pip install fluke-thermal-reader
 ```
 
+**Important**: 
+- **Package name**: `fluke-thermal-reader` (for pip install)
+- **Import name**: `fluke_thermal_reader` (for Python import)
+
 ## Quick Start
 
 ```python
-from fluke_reader import read_is2
+from fluke_thermal_reader import read_is2
 
 # Load a Fluke .is2 file
 data = read_is2("thermal_image.is2")
@@ -39,6 +47,32 @@ print(f"Background temperature: {data['BackgroundTemp']}°C")
 
 - **.is2**: Fluke thermal format (fully supported)
 - **.is3**: Fluke thermal format (planned for future version - FUTURE WORK)
+
+## Image Handling
+
+The library is designed to be lightweight and efficient. Images (thumbnails and visible photos) are handled as follows:
+
+- **Paths only**: Images are returned as file paths, not loaded automatically
+- **Optional loading**: You choose when and how to load images
+- **Memory efficient**: No automatic image loading saves memory
+- **Flexible**: Use any image library you prefer (matplotlib, PIL, opencv, etc.)
+
+```python
+# Images are returned as paths
+data = read_is2("thermal_image.is2")
+print(f"Thumbnail path: {data['thumbnail_path']}")
+print(f"Photo path: {data['photo_path']}")
+
+# Load images only when needed
+if data['thumbnail_path']:
+    # Option 1: Using matplotlib
+    import matplotlib.pyplot as plt
+    thumbnail = plt.imread(data['thumbnail_path'])
+    
+    # Option 2: Using PIL (lighter)
+    from PIL import Image
+    thumbnail = Image.open(data['thumbnail_path'])
+```
 
 ## Tested Camera Models
 
@@ -85,10 +119,29 @@ Support for .is3 files is planned for a future version.
 
 ## Examples
 
-### Basic Usage
+### Simple Usage (No External Dependencies)
 
 ```python
-from fluke_reader import read_is2
+from fluke_thermal_reader import read_is2
+import numpy as np
+
+# Load thermal data
+data = read_is2("thermal_image.is2")
+
+# Basic analysis
+temperatures = data['data']
+print(f"Temperature range: {temperatures.min():.1f}°C - {temperatures.max():.1f}°C")
+print(f"Average: {temperatures.mean():.1f}°C")
+
+# Hot spot analysis
+hot_spots = temperatures > (temperatures.mean() + 2 * temperatures.std())
+print(f"Hot spots: {np.sum(hot_spots)} pixels")
+```
+
+### Basic Usage (With Visualization)
+
+```python
+from fluke_thermal_reader import read_is2
 import matplotlib.pyplot as plt
 
 # Load thermal data
@@ -100,20 +153,26 @@ plt.colorbar(label='Temperature (°C)')
 plt.title(f'Thermal Image - {data["CameraModel"]}')
 plt.show()
 
-# Load images separately if needed
+# Load images separately if needed (optional)
 if data['thumbnail_path']:
+    # Using matplotlib (requires matplotlib)
     thumbnail = plt.imread(data['thumbnail_path'])
     plt.figure()
     plt.imshow(thumbnail)
     plt.title('Thumbnail')
     plt.show()
+    
+    # Or using PIL (lighter alternative)
+    # from PIL import Image
+    # thumbnail = Image.open(data['thumbnail_path'])
+    # thumbnail.show()
 ```
 
 ### Batch Processing
 
 ```python
 import os
-from fluke_reader import read_is2
+from fluke_thermal_reader import read_is2
 
 # Process multiple files
 for filename in os.listdir("thermal_images/"):
@@ -126,7 +185,7 @@ for filename in os.listdir("thermal_images/"):
 
 ```python
 import numpy as np
-from fluke_reader import read_is2
+from fluke_thermal_reader import read_is2
 
 # Load data
 data = read_is2("thermal_image.is2")
@@ -154,9 +213,12 @@ The library provides highly accurate temperature readings with:
 
 ## Requirements
 
-- Python 3.7+
-- numpy
-- matplotlib (optional, for visualization)
+- Python 3.8+
+- numpy>=1.20.0
+
+**Optional dependencies for visualization:**
+- matplotlib (for plotting thermal data)
+- PIL/Pillow (for loading images)
 
 ## Development
 

@@ -5,8 +5,8 @@ Test per FlukeReader.
 import pytest
 import numpy as np
 from unittest.mock import Mock, patch
-from fluke_reader import FlukeReader
-from fluke_reader.models import ThermalImage, MeasurementData
+from fluke_thermal_reader import FlukeReader
+from fluke_thermal_reader.models import ThermalImage, MeasurementData
 
 
 class TestFlukeReader:

@@ -4,8 +4,15 @@ Debug script to plot GH file data and see the differences clearly
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-from fluke_reader import fluke_load
+from fluke_thermal_reader import read_is2
+
+# Optional: matplotlib for visualization
+try:
+    import matplotlib.pyplot as plt
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+    print("Note: matplotlib not available. Install with: pip install matplotlib")
 
 def load_fluke_txt_data(filename):
     """Load temperature data from Fluke exported txt file."""
@@ -64,7 +71,7 @@ def load_fluke_txt_data(filename):
 def main():
     # Load our parsed data
     print("Loading GH data with our parser...")
-    our_data = fluke_load("GHtempe2_2429.IS2")
+    our_data = read_is2("GHtempe2_2429.IS2")
     our_temps = our_data['data']
     
     # Load real Fluke data
@@ -75,7 +82,12 @@ def main():
     print(f"Our temp range: {our_temps.min():.1f}°C - {our_temps.max():.1f}°C")
     print(f"Real temp range: {real_data.min():.1f}°C - {real_data.max():.1f}°C")
     
-    # Create detailed comparison plots
+    # Create detailed comparison plots (if matplotlib available)
+    if not HAS_MATPLOTLIB:
+        print("\nMatplotlib not available. Install with: pip install matplotlib")
+        print("Data analysis completed without visualization.")
+        return
+    
     fig, axes = plt.subplots(2, 3, figsize=(18, 12))
     
     # Our data heatmap

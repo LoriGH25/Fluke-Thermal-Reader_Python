@@ -51,7 +51,7 @@ Issues = "https://github.com/LoriGH25/FlukeReader_Python/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["fluke_reader*"]
+include = ["fluke_thermal_reader*"]
 
 [tool.black]
 line-length = 88

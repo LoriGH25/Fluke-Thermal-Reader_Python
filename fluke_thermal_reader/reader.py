@@ -32,10 +32,10 @@ def read_is2(file_path: Union[str, Path]) -> Dict[str, Any]:
             - 'photo_path': path to visible image (if available)
     
     Usage example:
-        import fluke_reader
+        import fluke_thermal_reader
         
         # Load a .is2 file
-        data = fluke_reader.read_is2("thermal_image.is2")
+        data = fluke_thermal_reader.read_is2("thermal_image.is2")
         
         # Access temperature data
         temperature_data = data['data']

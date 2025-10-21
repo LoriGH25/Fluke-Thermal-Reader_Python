@@ -5,9 +5,23 @@ Batch processing example for multiple Fluke thermal images.
 
 import os
 import glob
-from fluke_reader import fluke_load
-import pandas as pd
-import matplotlib.pyplot as plt
+from fluke_thermal_reader import read_is2
+import numpy as np
+
+# Optional dependencies
+try:
+    import pandas as pd
+    HAS_PANDAS = True
+except ImportError:
+    HAS_PANDAS = False
+    print("Note: pandas not available. Install with: pip install pandas")
+
+try:
+    import matplotlib.pyplot as plt
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+    print("Note: matplotlib not available. Install with: pip install matplotlib")
 
 def process_thermal_files(directory_path):
     """Process all .is2 files in a directory."""
@@ -30,7 +44,7 @@ def process_thermal_files(directory_path):
             print(f"\nProcessing: {os.path.basename(file_path)}")
             
             # Load thermal data
-            data = fluke_load(file_path)
+            data = read_is2(file_path)
             temperatures = data['data']
             
             # Calculate statistics
@@ -60,28 +74,41 @@ def process_thermal_files(directory_path):
         print("No files were successfully processed.")
         return
     
-    # Create summary DataFrame
-    df = pd.DataFrame(results)
-    
     # Display summary
     print(f"\n=== BATCH PROCESSING SUMMARY ===")
-    print(f"Successfully processed: {len(df)} files")
-    print(f"Camera models: {df['camera_model'].unique()}")
-    print(f"Overall temperature range: {df['min_temp'].min():.1f}°C - {df['max_temp'].max():.1f}°C")
-    print(f"Overall average temperature: {df['mean_temp'].mean():.1f}°C")
+    print(f"Successfully processed: {len(results)} files")
     
-    # Save results to CSV
-    output_file = "thermal_analysis_results.csv"
-    df.to_csv(output_file, index=False)
-    print(f"\nResults saved to: {output_file}")
+    # Calculate overall statistics
+    min_temps = [r['min_temp'] for r in results]
+    max_temps = [r['max_temp'] for r in results]
+    mean_temps = [r['mean_temp'] for r in results]
+    camera_models = list(set([r['camera_model'] for r in results]))
     
-    # Create summary plots
-    create_summary_plots(df)
+    print(f"Camera models: {camera_models}")
+    print(f"Overall temperature range: {min(min_temps):.1f}°C - {max(max_temps):.1f}°C")
+    print(f"Overall average temperature: {np.mean(mean_temps):.1f}°C")
     
-    return df
+    # Save results to CSV (if pandas available)
+    if HAS_PANDAS:
+        df = pd.DataFrame(results)
+        output_file = "thermal_analysis_results.csv"
+        df.to_csv(output_file, index=False)
+        print(f"\nResults saved to: {output_file}")
+        
+        # Create summary plots
+        create_summary_plots(df)
+        return df
+    else:
+        print("\nNote: Install pandas to save results to CSV and create plots:")
+        print("pip install pandas matplotlib")
+        return results
 
 def create_summary_plots(df):
     """Create summary plots for the batch processing results."""
+    
+    if not HAS_MATPLOTLIB:
+        print("Matplotlib not available. Install with: pip install matplotlib")
+        return
     
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
     
@@ -147,7 +174,15 @@ def main():
     
     if results_df is not None:
         print(f"\n=== DETAILED RESULTS ===")
-        print(results_df.to_string(index=False))
+        if HAS_PANDAS:
+            print(results_df.to_string(index=False))
+        else:
+            # Print results without pandas
+            for i, result in enumerate(results_df, 1):
+                print(f"\n{i}. {result['filename']}")
+                print(f"   Camera: {result['camera_model']} (Serial: {result['camera_serial']})")
+                print(f"   Temperature: {result['min_temp']:.1f}°C - {result['max_temp']:.1f}°C (avg: {result['mean_temp']:.1f}°C)")
+                print(f"   Emissivity: {result['emissivity']}, Background: {result['background_temp']:.1f}°C")
 
 if __name__ == "__main__":
     main()

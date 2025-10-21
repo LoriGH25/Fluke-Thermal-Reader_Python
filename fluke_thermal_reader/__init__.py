@@ -1,14 +1,17 @@
 """
-FlukeReader - Python library for reading Fluke thermal files (.is2 supported, .is3 future work)
+Fluke Thermal Reader - Python library for reading Fluke thermal files (.is2 supported, .is3 future work)
 
 This library allows you to read and analyze thermal files generated
 by Fluke measurement devices.
 
+Package name: fluke-thermal-reader
+Module name: fluke_thermal_reader
+
 Main usage:
-    import fluke_reader
+    import fluke_thermal_reader
     
     # Load a thermal .is2 file
-    data = fluke_reader.read_is2("thermal_image.is2")
+    data = fluke_thermal_reader.read_is2("thermal_image.is2")
     
     # Access the data
     temperature_data = data['data']
