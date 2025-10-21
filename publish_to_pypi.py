@@ -46,15 +46,15 @@ def main():
             print(f"❌ File {file} non trovato")
             sys.exit(1)
     
-    # Verifica che la directory fluke_reader esista
-    if not Path("fluke_reader").exists():
-        print("❌ Directory fluke_reader non trovata")
+    # Verifica che la directory fluke_thermal_reader esista
+    if not Path("fluke_thermal_reader").exists():
+        print("❌ Directory fluke_thermal_reader non trovata")
         sys.exit(1)
     
     print("✅ Tutti i file necessari sono presenti")
     
     # Pulisce i build precedenti
-    if not run_command("rm -rf build/ dist/ *.egg-info/", "Pulizia build precedenti"):
+    if not run_command("if exist build rmdir /s /q build && if exist dist rmdir /s /q dist && if exist *.egg-info rmdir /s /q *.egg-info", "Pulizia build precedenti"):
         print("⚠️  Avviso: Non è stato possibile pulire i build precedenti")
     
     # Installa le dipendenze di build

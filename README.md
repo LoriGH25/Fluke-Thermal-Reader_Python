@@ -41,6 +41,37 @@ print(f"Emissivity: {data['Emissivity']}")
 print(f"Background temperature: {data['BackgroundTemp']}°C")
 ```
 
+## Examples
+
+### Quick Example
+Run the basic example from the project root:
+```bash
+python example.py
+```
+
+### Complete Examples
+For comprehensive examples, see the `examples/` directory:
+
+```bash
+# Basic usage example
+python examples/basic_usage.py
+
+# Complete usage example (shows all features)
+python examples/complete_usage_example.py
+
+# Simple usage example
+python examples/simple_usage.py
+```
+
+The complete example demonstrates:
+- Reading IS2 files with error handling
+- Extracting all metadata categories
+- Displaying temperature statistics
+- Showing camera information
+- Accessing measurement parameters
+- Displaying thermal images with matplotlib
+- Analyzing thermal data distributions
+
 ## Supported File Formats
 
 - **IS2 (images)**: Fluke thermal image format — FULLY SUPPORTED

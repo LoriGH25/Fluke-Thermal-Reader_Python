@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 """
-Basic usage example for fluke_reader library.
+Basic Usage Example for fluke_thermal_reader
+
+This example shows basic usage of the fluke_thermal_reader package:
+- Reading IS2 thermal files
+- Accessing basic metadata and thermal data
+- Simple visualization with matplotlib
+
+Author: Your Name
+Date: 2024
 """
 
 from fluke_thermal_reader import read_is2

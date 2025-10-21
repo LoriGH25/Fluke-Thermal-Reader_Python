@@ -8,7 +8,6 @@ version = "0.1.0"
 description = "Libreria Python per leggere file termografici Fluke (.is2 e .is3)"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {text = "MIT"}
 authors = [
     {name = "Lorenzo Ghidini", email = "lorigh46@gmail.com"}
 ]
@@ -16,7 +15,6 @@ keywords = ["fluke", "thermal", "thermography", "is2", "is3", "temperature"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",

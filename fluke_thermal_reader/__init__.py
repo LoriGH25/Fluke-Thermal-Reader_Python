@@ -15,7 +15,6 @@ Main usage:
     
     # Access the data
     temperature_data = data['data']
-    print(f"Average temperature: {temperature_data.mean():.2f}°C")
     
     # NOTE: Support for .is3 is planned for the future
 """

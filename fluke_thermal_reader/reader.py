@@ -39,9 +39,6 @@ def read_is2(file_path: Union[str, Path]) -> Dict[str, Any]:
         
         # Access temperature data
         temperature_data = data['data']
-        print(f"Dimensions: {data['size']}")
-        print(f"Average temperature: {temperature_data.mean():.2f}°C")
-        print(f"Emissivity: {data['emissivity']}")
     """
     file_path = Path(file_path)
     
@@ -87,7 +84,6 @@ class FlukeReader:
     Usage example:
         reader = FlukeReader()
         data = reader.read_file("thermal_image.is2")
-        print(f"Average temperature: {data['data'].mean():.2f}°C")
     """
     
     def __init__(self):
@@ -146,7 +142,6 @@ class FlukeReader:
                     data = self.read_file(file_path)
                     thermal_data.append(data)
                 except Exception as e:
-                    print(f"Error reading {file_path}: {e}")
                     continue
         
         return thermal_data

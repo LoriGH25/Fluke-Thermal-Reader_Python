@@ -105,7 +105,6 @@ class IS2Parser:
         try:
             private_props_path = os.path.join(self.temp_dir, 'PrivateProperties.xml')
             if not os.path.exists(private_props_path):
-                print("No PrivateProperties.xml found, using offset 0")
                 return 0
                 
             with open(private_props_path, 'r', encoding='utf-8') as f:
@@ -118,19 +117,14 @@ class IS2Parser:
                 # Different rules for different camera models
                 if 'Ti480P' in str(camera_model):
                     final_offset = offset + 80
-                    print(f"Found OriginalFusionOffset: {offset}, using {final_offset} (Ti480P: offset + 80)")
                 elif 'Ti300' in str(camera_model):
                     final_offset = offset-40
-                    print(f"Found OriginalFusionOffset: {offset}, using {final_offset} (Ti300: offset + 80)")
                 else:
                     final_offset = offset
-                    print(f"Found OriginalFusionOffset: {offset}, using {final_offset} (default: direct)")
                 return final_offset
             else:
-                print("No OriginalFusionOffset found in PrivateProperties.xml, using offset 0")
                 return 0
         except Exception as e:
-            print(f"Warning: Could not read fusion offset: {e}, using offset 0")
             return 0
 
     def _read_image_properties(self, ir: Dict[str, Any]):
@@ -143,7 +137,6 @@ class IS2Parser:
                     try:
                         with open(imageprops_path, 'r', encoding=encoding) as f:
                             props = json.load(f)
-                        print(f"Debug: Successfully read ImageProperties.json with {encoding} encoding")
                         break
                     except:
                         continue
@@ -186,19 +179,12 @@ class IS2Parser:
                 ir['ContainsAudio'] = props.get('IRPROP_THERMAL_IMAGE_CONTAINS_AUDIO', 'False') == 'True'
                 ir['ContainsCNXReadings'] = props.get('IRPROP_THERMAL_IMAGE_CONTAINS_CNX_READINGS', 'False') == 'True'
                 
-                print(f"Debug: Loaded properties for {ir['CameraModel']} - Size: {ir['size']}")
                 
-                # Print all JSON values for debugging
-                print(f"\n=== ALL JSON VALUES ===")
-                for key, value in ir.items():
-                    print(f"{key}: {value}")
-                print(f"=== END JSON VALUES ===\n")
                 
             else:
                 raise FileNotFoundError("ImageProperties.json not found")
                 
         except Exception as e:
-            print(f"Error reading ImageProperties.json: {e}")
             raise Exception(f"Cannot read ImageProperties.json: {e}")
     
     def _read_calibration_data(self, ir: Dict[str, Any]):
@@ -229,7 +215,6 @@ class IS2Parser:
                                                        (equation_variables['c'] - j))) / \
                                                (2 * equation_variables['a'])
         except Exception as e:
-            print(f"Error reading calibration data: {e}")
             raise Exception(f"Cannot read calibration data: {e}")
     
     def _read_ir_image_info(self, ir: Dict[str, Any]):
@@ -247,7 +232,6 @@ class IS2Parser:
                 if 'transmission' not in ir:
                     ir['transmission'] = struct.unpack('<f', ir_image_info[44:48])[0]
         except Exception as e:
-            print(f"Error reading IR image info: {e}")
             # Use values from ImageProperties.json if available
             if 'transmission' not in ir:
                 ir['transmission'] = 1.0
@@ -256,14 +240,12 @@ class IS2Parser:
         """Read IR thermal data using ONLY JSON information."""
         ir_data_path = os.path.join(self.temp_dir, 'Images', 'Main', 'IR.data')
         if not os.path.exists(ir_data_path):
-            print(f"Warning: IR.data file not found at {ir_data_path}")
             ir['data'] = np.array([])
             return
             
         d = np.fromfile(ir_data_path, dtype=np.uint16)
         
         if len(d) < 200:
-            print("Warning: IR.data file too small")
             ir['data'] = np.array([])
             return
         
@@ -290,14 +272,10 @@ class IS2Parser:
             
             # Fix horizontal shift: read OriginalFusionOffset from PrivateProperties.xml
             shift_offset = self._get_fusion_offset(ir.get('CameraModel', ''))
-            print(f"Debug: Using shift offset: {shift_offset}")
             if shift_offset != 0:
                 for row in range(height):
                     # Apply the fusion offset shift in negative direction
                     temp_array[row] = np.roll(temp_array[row], -shift_offset)
-                print(f"Debug: Applied shift of {shift_offset} pixels to all rows")
-            else:
-                print("Debug: No shift applied (offset = 0)")
             
             ir['data'] = temp_array
         else:
@@ -320,7 +298,6 @@ class IS2Parser:
                 ir['thumbnail_path'] = None
                 ir['thumbnail'] = None
         except Exception as e:
-            print(f"Error reading thumbnail: {e}")
             ir['thumbnail_path'] = None
             ir['thumbnail'] = None
     
@@ -348,7 +325,6 @@ class IS2Parser:
                 ir['photo_path'] = None
                 ir['photo'] = None
         except Exception as e:
-            print(f"Error reading photo: {e}")
             ir['photo_path'] = None
             ir['photo'] = None
 
