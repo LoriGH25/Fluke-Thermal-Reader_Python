@@ -40,7 +40,7 @@ def main():
         sys.exit(1)
     
     # Verifica che i file necessari esistano
-    required_files = ["setup.py", "README.md", "LICENSE", "requirements.txt"]
+    required_files = ["README.md", "requirements.txt"]
     for file in required_files:
         if not Path(file).exists():
             print(f"❌ File {file} non trovato")
@@ -78,7 +78,14 @@ def main():
     # Chiedi conferma per la pubblicazione
     response = input("\nVuoi pubblicare su PyPI ora? (y/N): ").strip().lower()
     if response in ['y', 'yes']:
-        if not run_command("twine upload dist/*", "Pubblicazione su PyPI"):
+        # Chiedi il token PyPI all'utente per sicurezza
+        print("\n🔐 Per sicurezza, inserisci il tuo token PyPI:")
+        pypi_token = input("Token PyPI: ").strip()
+        if not pypi_token:
+            print("❌ Token PyPI richiesto per la pubblicazione")
+            sys.exit(1)
+        upload_command = f"twine upload --username __token__ --password {pypi_token} dist/*"
+        if not run_command(upload_command, "Pubblicazione su PyPI"):
             sys.exit(1)
         print("\n🎉 Pacchetto pubblicato con successo su PyPI!")
     else:
