@@ -1,4 +1,4 @@
-# Fluke Reader
+# Fluke Thermal Reader
 
 A Python library for reading and parsing Fluke thermal imaging files (.is2 and .is3 formats).
 
