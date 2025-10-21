@@ -1,6 +1,6 @@
-# Fluke Reader
+# Fluke Thermal Reader
 
-A Python library for reading and parsing Fluke thermal imaging files (.is2 and .is3 formats).
+A Python library for reading and analyzing Fluke thermal files (.is2 and .is3 formats).
 
 ## Features
 
@@ -13,16 +13,16 @@ A Python library for reading and parsing Fluke thermal imaging files (.is2 and .
 ## Installation
 
 ```bash
-pip install fluke-reader
+pip install fluke-thermal-reader
 ```
 
 ## Quick Start
 
 ```python
-from fluke_reader import fluke_load
+from fluke_reader import read_is2
 
 # Load a Fluke .is2 file
-data = fluke_load("thermal_image.is2")
+data = read_is2("thermal_image.is2")
 
 # Access thermal data
 thermal_data = data['data']  # 2D numpy array of temperatures
@@ -37,8 +37,8 @@ print(f"Background temperature: {data['BackgroundTemp']}°C")
 
 ## Supported File Formats
 
-- **.is2**: Fluke thermal imaging format (fully supported)
-- **.is3**: Fluke thermal imaging format (planned for future release)
+- **.is2**: Fluke thermal format (fully supported)
+- **.is3**: Fluke thermal format (planned for future version - FUTURE WORK)
 
 ## Tested Camera Models
 
@@ -49,15 +49,20 @@ print(f"Background temperature: {data['BackgroundTemp']}°C")
 
 ## API Reference
 
-### `fluke_load(file_path)`
+### `read_is2(file_path)`
 
-Load and parse a Fluke thermal imaging file.
+Load and parse a Fluke thermal .is2 file.
 
 **Parameters:**
-- `file_path` (str): Path to the .is2 or .is3 file
+- `file_path` (str): Path to the .is2 file
 
 **Returns:**
 - `dict`: Dictionary containing thermal data and metadata
+
+### `read_is3(file_path)` - FUTURE WORK
+
+⚠️ **WARNING**: This function is not yet implemented.
+Support for .is3 files is planned for a future version.
 
 **Returned Data Structure:**
 ```python
@@ -73,8 +78,8 @@ Load and parse a Fluke thermal imaging file.
     'Emissivity': float,            # Emissivity setting
     'BackgroundTemp': float,        # Background temperature
     'CaptureDateTime': str,         # Capture date and time
-    'thumbnail': numpy.ndarray,     # Thumbnail image (if available)
-    'photo': numpy.ndarray,         # Visible light image (if available)
+    'thumbnail_path': str,          # Path to thumbnail image (if available)
+    'photo_path': str,              # Path to visible light image (if available)
 }
 ```
 
@@ -83,29 +88,37 @@ Load and parse a Fluke thermal imaging file.
 ### Basic Usage
 
 ```python
-from fluke_reader import fluke_load
+from fluke_reader import read_is2
 import matplotlib.pyplot as plt
 
 # Load thermal data
-data = fluke_load("thermal_image.is2")
+data = read_is2("thermal_image.is2")
 
 # Display thermal image
 plt.imshow(data['data'], cmap='hot')
 plt.colorbar(label='Temperature (°C)')
 plt.title(f'Thermal Image - {data["CameraModel"]}')
 plt.show()
+
+# Load images separately if needed
+if data['thumbnail_path']:
+    thumbnail = plt.imread(data['thumbnail_path'])
+    plt.figure()
+    plt.imshow(thumbnail)
+    plt.title('Thumbnail')
+    plt.show()
 ```
 
 ### Batch Processing
 
 ```python
 import os
-from fluke_reader import fluke_load
+from fluke_reader import read_is2
 
 # Process multiple files
 for filename in os.listdir("thermal_images/"):
     if filename.endswith(".is2"):
-        data = fluke_load(f"thermal_images/{filename}")
+        data = read_is2(f"thermal_images/{filename}")
         print(f"Processed {filename}: {data['MinTemp']:.1f}°C - {data['MaxTemp']:.1f}°C")
 ```
 
@@ -113,10 +126,10 @@ for filename in os.listdir("thermal_images/"):
 
 ```python
 import numpy as np
-from fluke_reader import fluke_load
+from fluke_reader import read_is2
 
 # Load data
-data = fluke_load("thermal_image.is2")
+data = read_is2("thermal_image.is2")
 temperatures = data['data']
 
 # Statistical analysis

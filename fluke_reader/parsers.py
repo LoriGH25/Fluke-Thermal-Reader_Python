@@ -3,19 +3,25 @@ Parser for Fluke thermal files (.is2 and .is3).
 """
 
 import os
+import re
 import shutil
 import struct
 import numpy as np
 import json
 from zipfile import ZipFile
-from typing import BinaryIO, Dict, Any, Tuple, Optional
-from datetime import datetime
+from typing import Dict, Any
 
 
 def calc_equation(z, x):
     """
-    y = calc_equation(z, x)
-    Input z, list of function variables
+    Calculate a polynomial of degree n-1 using coefficients z.
+    
+    Args:
+        z: List of polynomial coefficients [a0, a1, a2, ...]
+        x: Input value for calculation
+        
+    Returns:
+        float: Polynomial result y = a0 + a1*x + a2*x^2 + ...
     """
     k = range(0, len(z))
     m = k[::-1]
@@ -25,60 +31,16 @@ def calc_equation(z, x):
     return y
 
 
-def maxloc(t):
-    """Find the position and value of the maximum in a 2D array."""
-    maximum = 0
-    rownr = -1
-    rownrmax = 0
-    for row in t:
-        rownr += 1
-        maxi = max(row)
-        if maxi > maximum:
-            maximum = maxi
-            rownrmax = rownr
-    maxt = maximum
-    maximum = 0
-    collnr = -1
-    collnrmax = 0
-    for i in t[rownrmax]:
-        collnr += 1
-        if i > maximum:
-            maximum = i
-            collnrmax = collnr
-    if maximum > maxt:
-        maxt = maximum
-    return collnrmax, rownrmax, maxt
-
-
-def minloc(t):
-    """Find the position and value of the minimum in a 2D array."""
-    minimum = 1000000
-    rownr = -1
-    rownrmin = 0
-    for row in t:
-        rownr += 1
-        mini = min(row)
-        if mini < minimum:
-            minimum = mini
-            rownrmin = rownr
-    mint = minimum
-    minimum = 1000000
-    collnr = -1
-    collnrmin = 0
-    for i in t[rownrmin]:
-        collnr += 1
-        if i < mini:
-            minimum = i
-            collnrmin = collnr
-    if minimum < mint:
-        mint = minimum
-    return collnrmin, rownrmin, mint
-
-
 class IS2Parser:
-    """Parser for .is2 files (Fluke thermal format)."""
+    """
+    Parser for .is2 files (Fluke thermal format).
+    
+    This class handles the extraction and analysis of thermal data
+    from Fluke .is2 files, including metadata, calibration and images.
+    """
     
     def __init__(self):
+        """Initialize the parser with a temporary directory."""
         self.temp_dir = 'temp'
     
     def parse(self, file_path: str) -> Dict[str, Any]:
@@ -89,7 +51,10 @@ class IS2Parser:
             file_path: Path to the .is2 file
             
         Returns:
-            Dict: Dictionary containing all thermal data
+            Dict: Dictionary containing all thermal data, metadata and images
+            
+        Raises:
+            FileNotFoundError: If the file doesn't exist
         """
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
@@ -128,7 +93,15 @@ class IS2Parser:
                 shutil.rmtree(self.temp_dir)
     
     def _get_fusion_offset(self, camera_model: str = "") -> int:
-        """Read OriginalFusionOffset from PrivateProperties.xml or use 0 if not found"""
+        """
+        Read the fusion offset from PrivateProperties.xml file.
+        
+        Args:
+            camera_model: Camera model for specific rules
+            
+        Returns:
+            int: Correct fusion offset for the camera model
+        """
         try:
             private_props_path = os.path.join(self.temp_dir, 'PrivateProperties.xml')
             if not os.path.exists(private_props_path):
@@ -139,7 +112,6 @@ class IS2Parser:
                 content = f.read()
                 
             # Parse the OriginalFusionOffset value
-            import re
             match = re.search(r'"OriginalFusionOffset":"(\d+)@\d+"', content)
             if match:
                 offset = int(match.group(1))
@@ -332,29 +304,29 @@ class IS2Parser:
             ir['data'] = np.array([])
     
     def _read_thumbnail(self, ir: Dict[str, Any]):
-        """Read the thumbnail."""
+        """Read the thumbnail path (image loading is optional)."""
         try:
-            import matplotlib.pyplot as plt
             thumbnails_dir = os.path.join(self.temp_dir, 'Thumbnails')
             if os.path.exists(thumbnails_dir):
-                thumbnails_list = []
-                thumbnails_list += [each for each in os.listdir(thumbnails_dir) if each.endswith('.jpg')]
+                thumbnails_list = [each for each in os.listdir(thumbnails_dir) if each.endswith('.jpg')]
                 if thumbnails_list:
-                    ir['thumbnail'] = plt.imread(os.path.join(thumbnails_dir, thumbnails_list[0]))
+                    # Return the path to the thumbnail instead of loading it
+                    ir['thumbnail_path'] = os.path.join(thumbnails_dir, thumbnails_list[0])
+                    ir['thumbnail'] = None  # Set to None to indicate it needs to be loaded separately
                 else:
+                    ir['thumbnail_path'] = None
                     ir['thumbnail'] = None
             else:
+                ir['thumbnail_path'] = None
                 ir['thumbnail'] = None
-        except ImportError:
-            ir['thumbnail'] = None
         except Exception as e:
             print(f"Error reading thumbnail: {e}")
+            ir['thumbnail_path'] = None
             ir['thumbnail'] = None
     
     def _read_photo(self, ir: Dict[str, Any]):
-        """Read the visible image."""
+        """Read the visible image path (image loading is optional)."""
         try:
-            import matplotlib.pyplot as plt
             images_dir = os.path.join(self.temp_dir, 'Images', 'Main')
             if os.path.exists(images_dir):
                 image = ''
@@ -366,20 +338,23 @@ class IS2Parser:
                             image = each
                             maxsize = filesize
                 if image:
-                    ir['photo'] = plt.imread(os.path.join(images_dir, image))
+                    # Return the path to the photo instead of loading it
+                    ir['photo_path'] = os.path.join(images_dir, image)
+                    ir['photo'] = None  # Set to None to indicate it needs to be loaded separately
                 else:
+                    ir['photo_path'] = None
                     ir['photo'] = None
             else:
+                ir['photo_path'] = None
                 ir['photo'] = None
-        except ImportError:
-            ir['photo'] = None
         except Exception as e:
             print(f"Error reading photo: {e}")
+            ir['photo_path'] = None
             ir['photo'] = None
 
 
 class IS3Parser:
-    """Parser for .is3 files (newer Fluke thermal format)."""
+    """Parser for .is3 files (Fluke thermal format for video)."""
     
     def __init__(self):
         self.temp_dir = 'temp'

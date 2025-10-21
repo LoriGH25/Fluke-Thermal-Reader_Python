@@ -18,6 +18,7 @@ setup(
     author="Lorenzo Ghidini",
     author_email="lorigh46@gmail.com",
     description="Libreria Python per leggere file termografici Fluke (.is2 e .is3)",
+    license="MIT",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/LoriGH25/FlukeReader_Python",
