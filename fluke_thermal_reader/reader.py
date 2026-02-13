@@ -112,9 +112,9 @@ class FlukeReader:
         if file_extension == '.is2':
             return read_is2(file_path)
         elif file_extension == '.is3':
-            return read_is3(file_path)  # Solleverà NotImplementedError
+            return read_is3(file_path)  # Will raise NotImplementedError
         else:
-            raise ValueError(f"Formato file non supportato: {file_extension}")
+            raise ValueError(f"Unsupported file format: {file_extension}")
     
     def read_directory(self, directory_path: Union[str, Path], 
                       recursive: bool = False) -> List[Dict[str, Any]]:

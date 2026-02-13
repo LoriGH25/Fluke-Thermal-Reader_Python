@@ -3,16 +3,18 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "fluke_thermal_reader"
-version = "0.1.1"
-description = "Libreria Python per leggere file termografici Fluke (.is2 e .is3)"
+name = "fluke-thermal-reader"
+version = "0.2.0"
+description = "Python library for reading Fluke thermal imaging files (.is2; .is3 planned)"
 readme = "README.md"
 requires-python = ">=3.8"
 authors = [
     {name = "Lorenzo Ghidini", email = "lorigh46@gmail.com"}
 ]
 keywords = ["fluke", "thermal", "thermography", "is2", "is3", "temperature"]
+license = {text = "MIT"}
 classifiers = [
+    "License :: OSI Approved :: MIT License",
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",

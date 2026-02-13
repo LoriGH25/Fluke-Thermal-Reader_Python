@@ -1,5 +1,5 @@
 """
-Modelli di dati per i file termografici Fluke.
+Data models for Fluke thermal files.
 """
 
 from dataclasses import dataclass
@@ -9,8 +9,8 @@ import numpy as np
 
 @dataclass
 class MeasurementData:
-    """Rappresenta i dati di misurazione termografica."""
-    
+    """Thermographic measurement data."""
+
     temperature_data: np.ndarray
     timestamp: str
     device_model: str
@@ -24,21 +24,21 @@ class MeasurementData:
     object_emissivity: float
     atmospheric_transmission: float
     
-    # Metadati aggiuntivi
+    # Additional metadata
     metadata: Dict[str, Any]
     
     def get_temperature_range(self) -> tuple:
-        """Restituisce il range di temperature (min, max)."""
+        """Return the temperature range (min, max)."""
         return float(np.min(self.temperature_data)), float(np.max(self.temperature_data))
     
     def get_average_temperature(self) -> float:
-        """Restituisce la temperatura media."""
+        """Return the average temperature."""
         return float(np.mean(self.temperature_data))
 
 
 @dataclass
 class ThermalImage:
-    """Rappresenta un'immagine termografica completa."""
+    """A complete thermographic image."""
     
     measurement_data: MeasurementData
     image_width: int
@@ -46,12 +46,12 @@ class ThermalImage:
     pixel_data: np.ndarray
     
     def get_image_shape(self) -> tuple:
-        """Restituisce le dimensioni dell'immagine."""
+        """Return the image dimensions."""
         return (self.image_height, self.image_width)
     
     def get_temperature_at_pixel(self, x: int, y: int) -> float:
-        """Restituisce la temperatura al pixel specificato."""
+        """Return the temperature at the given pixel."""
         if 0 <= x < self.image_width and 0 <= y < self.image_height:
             return float(self.measurement_data.temperature_data[y, x])
-        raise IndexError(f"Coordinate pixel ({x}, {y}) fuori dai limiti dell'immagine")
+        raise IndexError(f"Pixel coordinates ({x}, {y}) out of image bounds")
 
