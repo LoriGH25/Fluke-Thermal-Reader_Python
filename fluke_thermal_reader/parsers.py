@@ -1,34 +1,19 @@
 """
-Parser for Fluke thermal files (.is2 and .is3).
+Parser for Fluke thermal files (.is2 format).
+
+This module provides a clean implementation for reading Fluke .is2 thermal image files.
+
 """
 
 import os
-import re
 import shutil
 import struct
 import numpy as np
 import json
 from zipfile import ZipFile
 from typing import Dict, Any
-
-
-def calc_equation(z, x):
-    """
-    Calculate a polynomial of degree n-1 using coefficients z.
-    
-    Args:
-        z: List of polynomial coefficients [a0, a1, a2, ...]
-        x: Input value for calculation
-        
-    Returns:
-        float: Polynomial result y = a0 + a1*x + a2*x^2 + ...
-    """
-    k = range(0, len(z))
-    m = k[::-1]
-    y = 0
-    for i in k:
-        y += np.multiply(z[i], x ** m[i])
-    return y
+from struct import unpack
+from .utilities import UnitConversion, calc_equation
 
 
 class IS2Parser:
@@ -41,7 +26,7 @@ class IS2Parser:
     
     def __init__(self):
         """Initialize the parser with a temporary directory."""
-        self.temp_dir = 'temp'
+        self.temp_dir = 'temp_fluke_reader'
     
     def parse(self, file_path: str) -> Dict[str, Any]:
         """
@@ -67,7 +52,10 @@ class IS2Parser:
             ir = {}
             ir['FileName'] = os.path.split(file_path)[1]
             
-            # Read all information from ImageProperties.json
+            # Read camera info (try both old and new format)
+            self._read_camera_info(ir)
+            
+            # Read all information from ImageProperties.json (if available)
             self._read_image_properties(ir)
             
             # Read calibration data
@@ -92,41 +80,24 @@ class IS2Parser:
             if os.path.exists(self.temp_dir):
                 shutil.rmtree(self.temp_dir)
     
-    def _get_fusion_offset(self, camera_model: str = "") -> int:
-        """
-        Read the fusion offset from PrivateProperties.xml file.
-        
-        Args:
-            camera_model: Camera model for specific rules
-            
-        Returns:
-            int: Correct fusion offset for the camera model
-        """
+    def _read_camera_info(self, ir: Dict[str, Any]):
+        """Read camera information from CameraInfo.gpbenc"""
         try:
-            private_props_path = os.path.join(self.temp_dir, 'PrivateProperties.xml')
-            if not os.path.exists(private_props_path):
-                return 0
+            camera_info_path = os.path.join(self.temp_dir, 'CameraInfo.gpbenc')
+            if os.path.exists(camera_info_path):
+                with open(camera_info_path, 'r', encoding='latin-1') as f:
+                    camera_info = f.read()
                 
-            with open(private_props_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-                
-            # Parse the OriginalFusionOffset value
-            match = re.search(r'"OriginalFusionOffset":"(\d+)@\d+"', content)
-            if match:
-                offset = int(match.group(1))
-                # Different rules for different camera models
-                if 'Ti480P' in str(camera_model):
-                    final_offset = offset + 80
-                elif 'Ti300' in str(camera_model):
-                    final_offset = offset-40
-                else:
-                    final_offset = offset
-                return final_offset
-            else:
-                return 0
-        except Exception as e:
-            return 0
-
+                # Extract camera information
+                if len(camera_info) >= 124:
+                    ir['CameraManufacturer'] = str(camera_info[76:94]).strip()
+                    ir['CameraModel'] = str(camera_info[97:103]).strip()
+                    ir['EngineSerial'] = str(camera_info[104:112]).strip()
+                    ir['CameraSerial'] = str(camera_info[115:124]).strip()
+        except Exception:
+            # If CameraInfo.gpbenc fails, values will be set from ImageProperties.json
+            pass
+    
     def _read_image_properties(self, ir: Dict[str, Any]):
         """Read all properties from ImageProperties.json."""
         try:
@@ -143,11 +114,16 @@ class IS2Parser:
                 else:
                     raise Exception("Could not decode ImageProperties.json with any encoding")
                 
-                # Camera information
-                ir['CameraManufacturer'] = props.get('IRPROP_THERMAL_IMAGER_MAKE', 'Unknown')
-                ir['CameraModel'] = props.get('IRPROP_THERMAL_IMAGER_MODEL', 'Unknown').strip('"')
-                ir['CameraSerial'] = props.get('IRPROP_THERMAL_IMAGER_SN', 'Unknown').strip('"')
-                ir['EngineSerial'] = ir['CameraSerial']  # Use same as camera serial
+                # Camera information (overrides CameraInfo.gpbenc if present)
+                if 'IRPROP_THERMAL_IMAGER_MAKE' in props:
+                    ir['CameraManufacturer'] = props.get('IRPROP_THERMAL_IMAGER_MAKE', 'Unknown')
+                if 'IRPROP_THERMAL_IMAGER_MODEL' in props:
+                    ir['CameraModel'] = props.get('IRPROP_THERMAL_IMAGER_MODEL', 'Unknown').strip('"')
+                if 'IRPROP_THERMAL_IMAGER_SN' in props:
+                    ir['CameraSerial'] = props.get('IRPROP_THERMAL_IMAGER_SN', 'Unknown').strip('"')
+                    if 'EngineSerial' not in ir:
+                        ir['EngineSerial'] = ir['CameraSerial']
+                
                 ir['IRLenses'] = props.get('IRPROP_THERMAL_IMAGER_IR_LENSES', '').strip('"')
                 ir['IRLensesSerial'] = props.get('IRPROP_THERMAL_IMAGER_IR_LENSES_SN', '').strip('"')
                 ir['CalibrationDate'] = props.get('IRPROP_THERMAL_IMAGER_CALIBRATION_DATE', '').strip('"')
@@ -171,6 +147,14 @@ class IS2Parser:
                 ir['CenterTemp'] = float(props.get('IRPROP_THERMAL_IMAGE_CENTER_POINT_TEMP_C', 0))
                 ir['BackgroundTemp'] = float(props.get('IRPROP_THERMAL_IMAGE_BG_TEMP_C', 0))
                 ir['Emissivity'] = float(props.get('IRPROP_THERMAL_IMAGE_EMISSIVITY', 0.95))
+                                
+                # Transmission if present
+                tr_val = props.get('IRPROP_THERMAL_IMAGE_TRANSMISSIVITY', None)
+                if tr_val is not None:
+                    try:
+                        ir['transmission'] = float(tr_val)
+                    except Exception:
+                        pass
                 
                 # Additional properties
                 ir['Title'] = props.get('IRPROP_THERMAL_IMAGE_TITLE', '').strip('"')
@@ -178,108 +162,124 @@ class IS2Parser:
                 ir['ContainsAnnotations'] = props.get('IRPROP_THERMAL_IMAGE_CONTAINS_ANNOTATIONS', 'False') == 'True'
                 ir['ContainsAudio'] = props.get('IRPROP_THERMAL_IMAGE_CONTAINS_AUDIO', 'False') == 'True'
                 ir['ContainsCNXReadings'] = props.get('IRPROP_THERMAL_IMAGE_CONTAINS_CNX_READINGS', 'False') == 'True'
-                
-                
-                
-            else:
-                raise FileNotFoundError("ImageProperties.json not found")
-                
         except Exception as e:
-            raise Exception(f"Cannot read ImageProperties.json: {e}")
+            # If ImageProperties.json doesn't exist or fails, continue with other methods
+            pass
     
     def _read_calibration_data(self, ir: Dict[str, Any]):
-        """Read calibration data."""
+        """
+        Read calibration data and build conversion lookup table.
+        
+        Finds calibration curves using magic bytes pattern (74, 25, 13) in CalibrationData.gpbenc
+        and builds a LUT for count->temperature conversion.
+        
+        CRITICAL: Each file has multiple sets of calibration curves for different temperature ranges.
+        The 'range' value (cal_data[18]) indicates which set to use. We need to select
+        the correct set based on the range value and the coefficient magnitudes.
+        """
         try:
             cal_data = np.fromfile(os.path.join(self.temp_dir, 'CalibrationData.gpbenc'), dtype=np.uint8)
-            ir['range'] = int(cal_data[18])
+            ir['range'] = int(cal_data[18])  # Auto 1 or 2, maybe more?
             ir['conversion'] = {}
-            
             for i in range(len(cal_data)):
+                # Every part of the conversion function starts with this 3 bytes
                 if cal_data[i] == 74 and cal_data[i + 1] == 25 and cal_data[i + 2] == 13:
                     curve_part = cal_data[i + 3:i + 27]
-                    temp_range = np.array([struct.unpack('<f', curve_part[:4])[0], 
-                                         struct.unpack('<f', curve_part[5:9])[0]])
+                    temp_range = np.array([unpack('<f', curve_part[:4])[0], unpack('<f', curve_part[5:9])[0]])
                     if temp_range[0] >= -180:
-                        equation_variables = {'a': struct.unpack('<f', curve_part[20:24])[0],
-                                            'b': struct.unpack('<f', curve_part[15:19])[0],
-                                            'c': struct.unpack('<f', curve_part[10:14])[0]}
+                        equation_variables = {'a': unpack('<f', curve_part[20:24])[0],
+                                            'b': unpack('<f', curve_part[15:19])[0],
+                                            'c': unpack('<f', curve_part[10:14])[0]}
                         data_range = calc_equation(
                             [equation_variables['a'], equation_variables['b'], equation_variables['c']],
                             temp_range)
-                        data_range_int = [int(data_range[0]) + (data_range[0] % 1 > 0), 
+                        data_range_int = [int(data_range[0]) + (data_range[0] % 1 > 0),
                                         int(data_range[1]) + (data_range[1] % 1 > 0)]
                         for j in range(data_range_int[0], data_range_int[1]):
-                            ir['conversion'][j] = (-equation_variables['b'] + 
-                                                np.sqrt(equation_variables['b'] ** 2 - 
-                                                       4 * equation_variables['a'] * 
-                                                       (equation_variables['c'] - j))) / \
-                                               (2 * equation_variables['a'])
+                            # Fluke uses a quadratic function with temperature as input, and IR-data as output. We want
+                            # data as input and temperature as output, so the abc-equation is used.
+                            ir['conversion'][j] = ((-equation_variables['b']
+                                                        + np.sqrt(equation_variables['b'] ** 2 - 4
+                                                                * equation_variables['a']
+                                                                * (equation_variables['c'] - j)))
+                                                        / (2 * equation_variables['a']))
+            if not ir['conversion']:
+                raise Exception("No calibration coefficients found in CalibrationData.gpbenc")
+                
         except Exception as e:
             raise Exception(f"Cannot read calibration data: {e}")
     
     def _read_ir_image_info(self, ir: Dict[str, Any]):
-        """Read IR image information for additional parameters."""
-        try:
-            ir_image_info = np.fromfile(os.path.join(self.temp_dir, 'Images', 'Main', 'IRImageInfo.gpbenc'), dtype=np.uint8)
+        """
+        Read IR image information for additional parameters.
+        
+        Note: For newer Fluke files, ImageProperties.json is more reliable.
+        IRImageInfo.gpbenc offsets may vary between camera models.
+        """
+        ir_image_info = np.fromfile(os.path.join(self.temp_dir, 'Images', 'Main', 'IRImageInfo.gpbenc'), dtype=np.uint8)
+        transmission = unpack('<f', ir_image_info[43:47])[0]
+        emissivity = unpack('<f', ir_image_info[33:37])[0]
+        backgroundtemperature = unpack('<f', ir_image_info[38:42])[0]
+        
+        if "Emissivity" not in ir:
+            ir['Emissivity'] = emissivity
+        if 'Transmission' not in ir:
+            ir['Transmission'] = transmission if (0 < transmission <= 1) else 1.0
+        if "BackgroundTemp" not in ir:
+            ir['BackgroundTemp'] = backgroundtemperature
             
-            # Read additional parameters if available
-            if len(ir_image_info) > 48:
-                # These might override the JSON values if they exist
-                if 'emissivity' not in ir or ir['emissivity'] == 0:
-                    ir['emissivity'] = struct.unpack('<f', ir_image_info[34:38])[0]
-                if 'backgroundtemperature' not in ir or ir['backgroundtemperature'] == 0:
-                    ir['backgroundtemperature'] = struct.unpack('<f', ir_image_info[39:43])[0]
-                if 'transmission' not in ir:
-                    ir['transmission'] = struct.unpack('<f', ir_image_info[44:48])[0]
-        except Exception as e:
-            # Use values from ImageProperties.json if available
-            if 'transmission' not in ir:
-                ir['transmission'] = 1.0
-    
     def _read_ir_data(self, ir: Dict[str, Any]):
-        """Read IR thermal data using ONLY JSON information."""
+        """
+        Read IR thermal data and convert to temperature.
+        
+        1. Read IR.data as uint16
+        2. Get dimensions from ImageProperties.json or from d[192], d[193] in IR.data
+        3. Thermal data starts at offset = height (size[1])
+        4. Convert counts to temperature using LUT
+        5. Apply emissivity and reflected-background correction formula
+        """
         ir_data_path = os.path.join(self.temp_dir, 'Images', 'Main', 'IR.data')
-        if not os.path.exists(ir_data_path):
-            ir['data'] = np.array([])
-            return
-            
+        
+        
         d = np.fromfile(ir_data_path, dtype=np.uint16)
+               
+        # Get dimensions: prefer ImageProperties.json, else read from IR.data header
+        if 'size' not in ir or ir['size'] is None or ir['size'][0] == 0 or ir['size'][1] == 0:
+            # Read width/height from IR.data (bytes 192-193)
+            if len(d) > 193:
+                width_from_data = int(d[192])
+                height_from_data = int(d[193])
+                if width_from_data > 0 and height_from_data > 0:
+                    ir['size'] = [width_from_data, height_from_data]
         
-        if len(d) < 200:
-            ir['data'] = np.array([])
-            return
+        # Ensure we have valid dimensions
+        if 'size' not in ir or ir['size'] is None or ir['size'][0] == 0 or ir['size'][1] == 0:
+            raise Exception("Could not determine image dimensions")
         
-        # Use ONLY JSON dimensions - no fallback, no other sources
-        width = ir['IRWidth']
-        height = ir['IRHeight']
-        
-        # Use height as offset (from original Fluke method)
-        index = height
         raw_temp = []
+        # Data offset = height (size[0])
+        offset = ir['size'][0]
+        n_pixels = ir['size'][0] * ir['size'][1]
+        conv = ir['conversion']
+        eps = max(1e-6, min(1.0, ir.get('Emissivity', ir.get('emissivity', 0.95))))
+        tau = max(1e-6, min(1.0, ir.get('Transmission', ir.get('transmission', 1.0))))
+        tbg4 = UnitConversion.c2k(ir.get('BackgroundTemp', ir.get('backgroundtemperature', 20.0))) ** 4
+        for i in d[offset:offset + n_pixels]:
+            t_rad = conv.get(int(i))
+            if t_rad is None:
+                raw_temp.append(np.nan)
+                continue
+            traw4 = UnitConversion.c2k(t_rad) ** 4
+            x = (traw4 - (1 - eps) * tbg4) / (tau * eps)
+            if x <= 0:
+                raw_temp.append(np.nan)
+                continue
+            treal = UnitConversion.k2c(x ** 0.25)
+            raw_temp.append(treal)        
         
-        # Read data
-        for i in d[index:index + (width * height)]:
-            if i > 0 and i in ir['conversion']:
-                # Use Fluke conversion formula
-                temp = (ir['conversion'][i] - (2 - ir['transmission'] - ir['emissivity']) * ir['backgroundtemperature']) / (ir['transmission'] * ir['emissivity'])
-                raw_temp.append(temp)
-            else:
-                raw_temp.append(0.0)
+        ir['data'] = np.reshape(np.array(raw_temp, dtype=float), (ir['size'][1], ir['size'][0])) 
         
-        if len(raw_temp) > 0:
-            # Reshape to [height, width] to match the expected format
-            temp_array = np.reshape(raw_temp, [height, width])
-            
-            # Fix horizontal shift: read OriginalFusionOffset from PrivateProperties.xml
-            shift_offset = self._get_fusion_offset(ir.get('CameraModel', ''))
-            if shift_offset != 0:
-                for row in range(height):
-                    # Apply the fusion offset shift in negative direction
-                    temp_array[row] = np.roll(temp_array[row], -shift_offset)
-            
-            ir['data'] = temp_array
-        else:
-            ir['data'] = np.array([])
+        
     
     def _read_thumbnail(self, ir: Dict[str, Any]):
         """Read the thumbnail path (image loading is optional)."""
@@ -310,6 +310,7 @@ class IS2Parser:
                 maxsize = 0
                 for each in os.listdir(images_dir):
                     if each.endswith('.jpg'):
+                        # Take the biggest image, the smaller image is cropped from the bigger one
                         filesize = os.path.getsize(os.path.join(images_dir, each))
                         if filesize > maxsize:
                             image = each

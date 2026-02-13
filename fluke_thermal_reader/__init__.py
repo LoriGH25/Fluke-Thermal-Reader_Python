@@ -19,7 +19,7 @@ Main usage:
     # NOTE: Support for .is3 is planned for the future
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "Lorenzo Ghidini"
 __email__ = "lorigh46@gmail.com"
 
@@ -27,8 +27,8 @@ from .reader import read_is2, read_is3, FlukeReader
 from .parsers import IS2Parser
 
 __all__ = [
-    "read_is2",    # Main function for .is2 files
-    "read_is3",    # Function for .is3 files (future work)
+    "read_is2",
+    "read_is3",
     "FlukeReader",
-    "IS2Parser"
+    "IS2Parser",
 ]

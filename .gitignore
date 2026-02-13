@@ -132,6 +132,7 @@ dmypy.json
 # Test files and analysis scripts
 test/
 legacy/
+IS2ref/
 
 # Temporary files
 temp_*/
@@ -139,9 +140,9 @@ temp_*/
 *.temp
 
 # Data files
-*.IS2
+#*.IS2
 *.IS3
-*.txt
+#*.txt
 *.png
 *.jpg
 *.jpeg
