@@ -18,7 +18,7 @@ A Python library for reading and analyzing Fluke thermal imaging files in **.is2
 
 ## Installation
 
-### From PyPI (when published)
+### From PyPI 
 
 ```bash
 pip install fluke-thermal-reader
