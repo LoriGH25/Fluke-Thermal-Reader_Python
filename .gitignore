@@ -7,6 +7,9 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+.pypirc
+is2_inspect_report.txt
+cal_debug.txt
 .Python
 build/
 develop-eggs/
@@ -162,3 +165,5 @@ Thumbs.db
 
 # Security - Sensitive files
 publish_to_pypi.py
+build.py
+TEST.py

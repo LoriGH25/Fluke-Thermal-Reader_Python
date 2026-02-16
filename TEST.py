@@ -1,9 +1,11 @@
 """Test IS2 reading with fluke_thermal_reader: print camera model and thermal plot."""
 import matplotlib.pyplot as plt
 import numpy as np
+#import fluke_thermal_reader
 from fluke_thermal_reader import read_is2
 
-FILE = "IS2ref/SHprel_600s 2_fine prova.IS2"
+FILE = "IS2ref/00002.IS2"
+#FILE = "IS2ref/CBH_300s.IS2"
 
 data = read_is2(FILE)
 

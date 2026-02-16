@@ -25,10 +25,12 @@ __email__ = "lorigh46@gmail.com"
 
 from .reader import read_is2, read_is3, FlukeReader
 from .parsers import IS2Parser
+from .camera_profiles import UnsupportedCameraError
 
 __all__ = [
     "read_is2",
     "read_is3",
     "FlukeReader",
     "IS2Parser",
+    "UnsupportedCameraError",
 ]
