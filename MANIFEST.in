@@ -1,6 +1,0 @@
-include README.md
-include requirements.txt
-recursive-include examples *.py
-recursive-include tests *.py
-
-
