@@ -4,7 +4,7 @@ import numpy as np
 #import fluke_thermal_reader
 from fluke_thermal_reader import read_is2
 
-FILE = "IS2ref/00002.IS2"
+FILE = "IS2ref/00001.IS2"
 #FILE = "IS2ref/CBH_300s.IS2"
 
 data = read_is2(FILE)
