@@ -168,5 +168,5 @@ publish_to_pypi.py
 build.py
 TEST.py
 
-Publish_to_PiPy.mkdocs
+Publish_to_PiPy.md
 pyproject.toml
